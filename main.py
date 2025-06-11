@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 import sqlite3
+from datetime import datetime
 
 class TaskTreeApp:
     def __init__(self, root):
@@ -11,7 +12,12 @@ class TaskTreeApp:
         self.conn = sqlite3.connect("task_tree.db")
         self.create_tables()
 
-        self.tree = ttk.Treeview(root)
+        # 设置 Treeview 两列：任务名称、截止时间
+        self.tree = ttk.Treeview(root, columns=("due",), show="tree headings")
+        self.tree.heading("#0", text="任务名称")  # Tree 列（左侧带缩进）
+        self.tree.heading("due", text="截止时间")  # 第二列
+        self.tree.column("#0", width=200)
+        self.tree.column("due", width=100)
         self.tree.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         self.tree.bind("<Double-1>", self.on_tree_double_click)
 
@@ -52,10 +58,13 @@ class TaskTreeApp:
         self._load_children(None, "")
 
     def _load_children(self, parent_id, tree_parent):
-        cursor = self.conn.execute("SELECT id, name, due_date FROM tasks WHERE parent_id IS ?" if parent_id is None else "SELECT id, name, due_date FROM tasks WHERE parent_id = ?", (parent_id,))
+        query = "SELECT id, name, due_date FROM tasks WHERE parent_id IS NULL" if parent_id is None \
+            else "SELECT id, name, due_date FROM tasks WHERE parent_id = ?"
+        cursor = self.conn.execute(query, () if parent_id is None else (parent_id,))
         for row in cursor.fetchall():
-            item_id = self.tree.insert(tree_parent, "end", iid=str(row[0]), text=row[1], values=(row[2],))
-            self._load_children(row[0], item_id)
+            task_id, name, due = row
+            item_id = self.tree.insert(tree_parent, "end", iid=str(task_id), text=name, values=(due,))
+            self._load_children(task_id, item_id)
 
     def add_parent_task(self):
         name = self.task_name.get().strip()
@@ -89,12 +98,13 @@ class TaskTreeApp:
         name = self.tree.item(item_id, "text")
         due_str = self.conn.execute("SELECT due_date FROM tasks WHERE id = ?", (item_id,)).fetchone()[0]
 
-        from datetime import datetime
-        due_date = datetime.strptime(due_str, "%Y-%m-%d").date()
-
         self.task_name.delete(0, tk.END)
         self.task_name.insert(0, name)
-        self.task_due.set_date(due_date)
+        try:
+            due_date = datetime.strptime(due_str, "%Y-%m-%d").date()
+            self.task_due.set_date(due_date)
+        except Exception as e:
+            print("日期解析错误:", due_str, e)
 
     def update_task(self):
         if not self.selected_item_id:
@@ -117,7 +127,6 @@ class TaskTreeApp:
             self.load_tree()
 
     def _delete_recursive(self, task_id):
-        # 递归删除子任务
         cursor = self.conn.execute("SELECT id FROM tasks WHERE parent_id = ?", (task_id,))
         for row in cursor.fetchall():
             self._delete_recursive(row[0])
