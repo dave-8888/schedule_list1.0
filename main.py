@@ -23,10 +23,13 @@ class TaskEditorDialog(tk.Toplevel):
         if due_date:
             self.due_entry.set_date(due_date)
 
-        # ✅ 绑定回车键
         self.bind("<Return>", lambda event: self.save())
 
         tk.Button(self, text="保存", command=self.save).grid(row=2, column=0, columnspan=2, pady=10)
+
+        # ✅ 设置焦点和居中
+        self.name_entry.focus_set()
+        self.center_window()
 
     def save(self):
         name = self.name_entry.get().strip()
@@ -34,6 +37,17 @@ class TaskEditorDialog(tk.Toplevel):
         if name and self.callback:
             self.callback(name, due)
             self.destroy()
+
+    def center_window(self):
+        self.update_idletasks()
+        w = self.winfo_width()
+        h = self.winfo_height()
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x = (sw - w) // 2
+        y = (sh - h) // 2
+        self.geometry(f"{w}x{h}+{x}+{y}")
+
 
 
 class TaskTreeApp:
