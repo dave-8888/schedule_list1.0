@@ -23,6 +23,9 @@ class TaskEditorDialog(tk.Toplevel):
         if due_date:
             self.due_entry.set_date(due_date)
 
+        # ✅ 绑定回车键
+        self.bind("<Return>", lambda event: self.save())
+
         tk.Button(self, text="保存", command=self.save).grid(row=2, column=0, columnspan=2, pady=10)
 
     def save(self):
@@ -31,6 +34,7 @@ class TaskEditorDialog(tk.Toplevel):
         if name and self.callback:
             self.callback(name, due)
             self.destroy()
+
 
 class TaskTreeApp:
     def __init__(self, root):
