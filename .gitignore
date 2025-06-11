@@ -1,2 +1,14 @@
-/tasks.db
 /task_tree.db
+/build/TaskManager/Analysis-00.toc
+/build/TaskManager/base_library.zip
+/build/TaskManager/EXE-00.toc
+/build/TaskManager/PKG-00.toc
+/build/TaskManager/PYZ-00.pyz
+/build/TaskManager/PYZ-00.toc
+/dist/task_tree.db
+/dist/TaskManager.exe
+/build/TaskManager/TaskManager.pkg
+/TaskManager.spec
+/build/TaskManager/warn-TaskManager.txt
+/build/TaskManager/xref-TaskManager.html
+/.idea/
