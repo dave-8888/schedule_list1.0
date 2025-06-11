@@ -95,6 +95,7 @@ class TaskTreeApp:
     def load_tree(self):
         self.tree.delete(*self.tree.get_children())
         self._load_children(None, "")
+        self.expand_all()  # 加在这里，加载完立刻展开所有节点
 
     def _load_children(self, parent_id, tree_parent):
         query = "SELECT id, name, due_date FROM tasks WHERE parent_id IS NULL" if parent_id is None \
@@ -160,6 +161,16 @@ class TaskTreeApp:
             self.load_tree()
 
         TaskEditorDialog(self.root, title=title, name=name, due_date=due_date, callback=on_save)
+
+    def expand_all(self):
+        for item in self.tree.get_children():
+            self._expand_recursive(item)
+
+    def _expand_recursive(self, item):
+        self.tree.item(item, open=True)
+        for child in self.tree.get_children(item):
+            self._expand_recursive(child)
+
 
 if __name__ == "__main__":
     root = tk.Tk()
