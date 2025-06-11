@@ -30,7 +30,7 @@ class TaskTreeApp:
         self.task_name.pack()
 
         tk.Label(self.form_frame, text="截止时间").pack()
-        self.task_due = DateEntry(self.form_frame, width=16)
+        self.task_due = DateEntry(self.form_frame, width=16, date_pattern="y-mm-dd")
         self.task_due.pack()
 
         tk.Button(self.form_frame, text="添加为父任务", command=self.add_parent_task).pack(pady=5)
