@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6e6b91a0-ecff-4ab3-b646-9701b249b63e" name="更改" comment="标记完成任务后，子任务也对标记完成">
-      <change afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
+    <list default="true" id="6e6b91a0-ecff-4ab3-b646-9701b249b63e" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,6 +23,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "dave-8888"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/dave-8888/schedule_list1.0.git",
+    "accountId": "878bbb36-e827-4d42-ac27-7c81fbc0e404"
+  }
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -92,7 +103,8 @@
       <workItem from="1749638327238" duration="2936000" />
       <workItem from="1749715739027" duration="55000" />
       <workItem from="1749725779685" duration="1211000" />
-      <workItem from="1749729468760" duration="1037000" />
+      <workItem from="1749729468760" duration="1287000" />
+      <workItem from="1749731691033" duration="464000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -198,11 +210,30 @@
       <option name="project" value="LOCAL" />
       <updated>1749729688739</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="日期默认为空">
+      <option name="closed" value="true" />
+      <created>1749730525428</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1749730525428</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="init" />
@@ -218,9 +249,10 @@
     <MESSAGE value="修复无法展开的bug" />
     <MESSAGE value="右键标记完成" />
     <MESSAGE value="标记完成任务后，子任务也对标记完成" />
-    <option name="LAST_COMMIT_MESSAGE" value="标记完成任务后，子任务也对标记完成" />
+    <MESSAGE value="日期默认为空" />
+    <option name="LAST_COMMIT_MESSAGE" value="日期默认为空" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/schedule_list$main.coverage" NAME="main 覆盖结果" MODIFIED="1749730501741" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/schedule_list$main.coverage" NAME="main 覆盖结果" MODIFIED="1749730623408" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
