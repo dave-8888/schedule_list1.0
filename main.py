@@ -78,6 +78,7 @@ class TaskTreeApp:
         self.menu.add_command(label="🗑️ 删除任务", command=self.delete_task)
 
         self.tree.bind("<Button-3>", self.show_context_menu)
+        self.tree.bind("<Double-1>", self.toggle_task_completed)
         self.load_tree()
 
     def create_tables(self):
@@ -87,6 +88,7 @@ class TaskTreeApp:
                 name TEXT NOT NULL,
                 due_date TEXT,
                 parent_id INTEGER,
+                completed INTEGER DEFAULT 0,
                 FOREIGN KEY(parent_id) REFERENCES tasks(id)
             )
         ''')
@@ -98,13 +100,27 @@ class TaskTreeApp:
         self.expand_all()  # 加在这里，加载完立刻展开所有节点
 
     def _load_children(self, parent_id, tree_parent):
-        query = "SELECT id, name, due_date FROM tasks WHERE parent_id IS NULL" if parent_id is None \
-            else "SELECT id, name, due_date FROM tasks WHERE parent_id = ?"
+        query = """
+                SELECT id, name, due_date, completed
+                FROM tasks
+                WHERE parent_id IS NULL
+                """ if parent_id is None else """
+                SELECT id, name, due_date, completed
+                FROM tasks
+                WHERE parent_id = ? 
+                """
         cursor = self.conn.execute(query, () if parent_id is None else (parent_id,))
-        for row in cursor.fetchall():
-            task_id, name, due = row
+        tasks = cursor.fetchall()
+
+        # 将未完成的任务放前面，完成的任务放后面
+        tasks.sort(key=lambda t: t[3])  # 0 = 未完成，1 = 已完成
+
+        for task_id, name, due, completed in tasks:
             item_id = self.tree.insert(tree_parent, "end", iid=str(task_id), text=name, values=(due,))
-            self._load_children(task_id, item_id)
+            # 设置为灰色
+            if completed:
+                self.tree.item(item_id, tags=("completed",))
+        self.tree.tag_configure("completed", foreground="gray")
 
     def add_parent_task(self):
         self.open_task_dialog(title="添加父任务", parent_id=None)
@@ -170,6 +186,17 @@ class TaskTreeApp:
         self.tree.item(item, open=True)
         for child in self.tree.get_children(item):
             self._expand_recursive(child)
+
+    def toggle_task_completed(self, event):
+        item = self.tree.identify_row(event.y)
+        if item:
+            task_id = int(item)
+            current = self.conn.execute("SELECT completed FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            if current:
+                new_status = 0 if current[0] else 1
+                self.conn.execute("UPDATE tasks SET completed = ? WHERE id = ?", (new_status, task_id))
+                self.conn.commit()
+                self.load_tree()
 
 
 if __name__ == "__main__":
