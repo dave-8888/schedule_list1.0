@@ -76,9 +76,10 @@ class TaskTreeApp:
         self.menu.add_command(label="➕ 添加子任务", command=self.add_child_task)
         self.menu.add_command(label="✏️ 修改任务", command=self.edit_task)
         self.menu.add_command(label="🗑️ 删除任务", command=self.delete_task)
+        self.menu.add_separator()
+        self.menu.add_command(label="✅ 标记为完成 / 未完成", command=self.toggle_task_completed)
 
         self.tree.bind("<Button-3>", self.show_context_menu)
-        self.tree.bind("<Double-1>", self.toggle_task_completed)
         self.load_tree()
 
     def create_tables(self):
@@ -189,16 +190,17 @@ class TaskTreeApp:
         for child in self.tree.get_children(item):
             self._expand_recursive(child)
 
-    def toggle_task_completed(self, event):
-        item = self.tree.identify_row(event.y)
-        if item:
-            task_id = int(item)
-            current = self.conn.execute("SELECT completed FROM tasks WHERE id = ?", (task_id,)).fetchone()
-            if current:
-                new_status = 0 if current[0] else 1
-                self.conn.execute("UPDATE tasks SET completed = ? WHERE id = ?", (new_status, task_id))
-                self.conn.commit()
-                self.load_tree()
+    def toggle_task_completed(self):
+        selected = self.tree.selection()
+        if not selected:
+            return
+        task_id = int(selected[0])
+        current = self.conn.execute("SELECT completed FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if current:
+            new_status = 0 if current[0] else 1
+            self.conn.execute("UPDATE tasks SET completed = ? WHERE id = ?", (new_status, task_id))
+            self.conn.commit()
+            self.load_tree()
 
 
 if __name__ == "__main__":
