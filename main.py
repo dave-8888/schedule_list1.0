@@ -22,6 +22,9 @@ class TaskEditorDialog(tk.Toplevel):
 
         if due_date:
             self.due_entry.set_date(due_date)
+        else:
+            self.due_entry.set_date(datetime.today())  # 临时默认填今天（后面我们改成允许为空）
+            self.due_entry.delete(0, 'end')  # 让它显示为空
 
         self.bind("<Return>", lambda event: self.save())
 
@@ -31,9 +34,11 @@ class TaskEditorDialog(tk.Toplevel):
         self.name_entry.focus_set()
         self.center_window()
 
+
     def save(self):
         name = self.name_entry.get().strip()
-        due = self.due_entry.get_date().isoformat()
+        due_raw = self.due_entry.get()
+        due = due_raw if due_raw else None
         if name and self.callback:
             self.callback(name, due)
             self.destroy()
