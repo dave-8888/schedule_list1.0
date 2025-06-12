@@ -196,11 +196,17 @@ class TaskTreeApp:
             return
         task_id = int(selected[0])
         current = self.conn.execute("SELECT completed FROM tasks WHERE id = ?", (task_id,)).fetchone()
-        if current:
+        if current is not None:
             new_status = 0 if current[0] else 1
-            self.conn.execute("UPDATE tasks SET completed = ? WHERE id = ?", (new_status, task_id))
+            self._set_task_completed_recursive(task_id, new_status)
             self.conn.commit()
             self.load_tree()
+
+    def _set_task_completed_recursive(self, task_id, status):
+        self.conn.execute("UPDATE tasks SET completed = ? WHERE id = ?", (status, task_id))
+        cursor = self.conn.execute("SELECT id FROM tasks WHERE parent_id = ?", (task_id,))
+        for row in cursor.fetchall():
+            self._set_task_completed_recursive(row[0], status)
 
 
 if __name__ == "__main__":
