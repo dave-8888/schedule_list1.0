@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6e6b91a0-ecff-4ab3-b646-9701b249b63e" name="更改" comment="ignore">
+    <list default="true" id="6e6b91a0-ecff-4ab3-b646-9701b249b63e" name="更改" comment="双击变灰">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
@@ -90,6 +90,7 @@
       <workItem from="1749627624435" duration="1649000" />
       <workItem from="1749638327238" duration="2936000" />
       <workItem from="1749715739027" duration="55000" />
+      <workItem from="1749725779685" duration="162000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -163,7 +164,15 @@
       <option name="project" value="LOCAL" />
       <updated>1749638477366</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="双击变灰">
+      <option name="closed" value="true" />
+      <created>1749725924486</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1749725924486</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -179,9 +188,10 @@
     <MESSAGE value="输入框 弹出框 焦点居中" />
     <MESSAGE value="操作完成，默认展开所有任务" />
     <MESSAGE value="ignore" />
-    <option name="LAST_COMMIT_MESSAGE" value="ignore" />
+    <MESSAGE value="双击变灰" />
+    <option name="LAST_COMMIT_MESSAGE" value="双击变灰" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/schedule_list$main.coverage" NAME="main 覆盖结果" MODIFIED="1749639573983" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/schedule_list$main.coverage" NAME="main 覆盖结果" MODIFIED="1749725783341" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

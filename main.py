@@ -112,15 +112,17 @@ class TaskTreeApp:
         cursor = self.conn.execute(query, () if parent_id is None else (parent_id,))
         tasks = cursor.fetchall()
 
-        # 将未完成的任务放前面，完成的任务放后面
-        tasks.sort(key=lambda t: t[3])  # 0 = 未完成，1 = 已完成
+        tasks.sort(key=lambda t: t[3])  # 根据是否完成排序
 
         for task_id, name, due, completed in tasks:
             item_id = self.tree.insert(tree_parent, "end", iid=str(task_id), text=name, values=(due,))
-            # 设置为灰色
             if completed:
                 self.tree.item(item_id, tags=("completed",))
+            # ✅ 修复关键：递归加载子任务
+            self._load_children(task_id, item_id)
+
         self.tree.tag_configure("completed", foreground="gray")
+
 
     def add_parent_task(self):
         self.open_task_dialog(title="添加父任务", parent_id=None)
