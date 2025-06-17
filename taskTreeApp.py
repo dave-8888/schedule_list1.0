@@ -65,6 +65,12 @@ class TaskTreeApp:
             )
         ''')
         self.conn.commit()
+        # 若旧表中没有 sort_order 字段，尝试添加（避免报错）
+        try:
+            self.conn.execute("ALTER TABLE tasks ADD COLUMN sort_order INTEGER DEFAULT 0")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
         # 若旧表中没有 expanded 字段，尝试添加（避免报错）
         try:
             self.conn.execute("ALTER TABLE tasks ADD COLUMN expanded INTEGER DEFAULT 1")
