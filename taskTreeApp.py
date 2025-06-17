@@ -11,6 +11,7 @@ class TaskTreeApp:
         self._dragging_item = None
         self._dragging_target = None
         self._hover_target_item = None  # 当前悬浮的 item
+        self._completed_items = set()
 
         self.root.title("任务列表树")
 
@@ -21,6 +22,8 @@ class TaskTreeApp:
         self.toolbar = tk.Frame(root)
         self.toolbar.pack(fill="x", pady=(5, 0))
         tk.Button(self.toolbar, text="➕ 添加父任务", command=self.add_parent_task).pack(side="left", padx=10)
+        tk.Button(self.toolbar, text="🔽 全部展开", command=self.expand_all).pack(side="left", padx=5)
+        tk.Button(self.toolbar, text="🔼 全部折叠", command=self.collapse_all).pack(side="left", padx=5)
 
         # 创建 Treeview
         self.tree = ttk.Treeview(root, columns=("due",), show="tree headings")
@@ -43,6 +46,8 @@ class TaskTreeApp:
         self.tree.bind("<B1-Motion>", self.on_drag_motion)
         self.tree.bind("<ButtonRelease-1>", self.on_drag_drop_sort)
         self.tree.tag_configure("hover", background="#d0eaff")  # 浅蓝色背景
+        self.tree.bind("<<TreeviewOpen>>", self.on_tree_open)
+        self.tree.bind("<<TreeviewClose>>", self.on_tree_close)
 
         self.load_tree()
 
@@ -55,24 +60,31 @@ class TaskTreeApp:
                 parent_id INTEGER,
                 completed INTEGER DEFAULT 0,
                 sort_order INTEGER DEFAULT 0,
+                expanded INTEGER DEFAULT 1,  -- 1=展开，0=折叠
                 FOREIGN KEY(parent_id) REFERENCES tasks(id)
             )
         ''')
         self.conn.commit()
+        # 若旧表中没有 expanded 字段，尝试添加（避免报错）
+        try:
+            self.conn.execute("ALTER TABLE tasks ADD COLUMN expanded INTEGER DEFAULT 1")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
 
     def load_tree(self):
         self.tree.delete(*self.tree.get_children())
+        self._completed_items.clear()
         self._load_children(None, "")
-        self.expand_all()  # 加在这里，加载完立刻展开所有节点
 
     def _load_children(self, parent_id, tree_parent):
         query = """
-                SELECT id, name, due_date, completed
+                SELECT id, name, due_date, completed,expanded
                 FROM tasks
                 WHERE parent_id IS NULL
                 ORDER BY sort_order
                 """ if parent_id is None else """
-                SELECT id, name, due_date, completed
+                SELECT id, name, due_date, completed,expanded
                 FROM tasks
                 WHERE parent_id = ? 
                 ORDER BY sort_order
@@ -82,10 +94,12 @@ class TaskTreeApp:
 
         tasks.sort(key=lambda t: t[3])  # 根据是否完成排序
 
-        for task_id, name, due, completed in tasks:
+        for task_id, name, due, completed,expanded  in tasks:
             item_id = self.tree.insert(tree_parent, "end", iid=str(task_id), text=name, values=(due or '',))
             if completed:
                 self.tree.item(item_id, tags=("completed",))
+                self._completed_items.add(item_id)  # 记录
+            self.tree.item(item_id, open=bool(expanded))  # <---- 恢复展开状态
             # ✅ 修复关键：递归加载子任务
             self._load_children(task_id, item_id)
 
@@ -160,6 +174,18 @@ class TaskTreeApp:
         self.tree.item(item, open=True)
         for child in self.tree.get_children(item):
             self._expand_recursive(child)
+
+    def collapse_all(self):
+        for item in self.tree.get_children():
+            self._collapse_recursive(item)
+
+    def _collapse_recursive(self, item):
+        self.tree.item(item, open=False)
+        for child in self.tree.get_children(item):
+            self._collapse_recursive(child)
+
+
+
 
     def toggle_task_completed(self):
         selected = self.tree.selection()
@@ -273,5 +299,31 @@ class TaskTreeApp:
         self.conn.commit()
         self.load_tree()
         self._dragging_item = None
+
+    def _record_expanded_state(self):
+        def record_recursive(item_id):
+            task_id = int(item_id)
+            is_open = int(self.tree.item(item_id, "open"))
+            self.conn.execute("UPDATE tasks SET expanded = ? WHERE id = ?", (is_open, task_id))
+            for child in self.tree.get_children(item_id):
+                record_recursive(child)
+
+        for top_item in self.tree.get_children():
+            record_recursive(top_item)
+
+        self.conn.commit()
+
+    def on_tree_open(self, event):
+        item_id = self.tree.focus()
+        if item_id:
+            self.conn.execute("UPDATE tasks SET expanded = 1 WHERE id = ?", (int(item_id),))
+            self.conn.commit()
+
+    def on_tree_close(self, event):
+        item_id = self.tree.focus()
+        if item_id:
+            self.conn.execute("UPDATE tasks SET expanded = 0 WHERE id = ?", (int(item_id),))
+            self.conn.commit()
+
 
 
