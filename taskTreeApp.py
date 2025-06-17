@@ -8,6 +8,10 @@ from taskEditorDialog import TaskEditorDialog
 class TaskTreeApp:
     def __init__(self, root):
         self.root = root
+        self._dragging_item = None
+        self._dragging_target = None
+        self._hover_target_item = None  # 当前悬浮的 item
+
         self.root.title("任务列表树")
 
         self.conn = sqlite3.connect("task_tree.db")
@@ -35,6 +39,11 @@ class TaskTreeApp:
         self.menu.add_command(label="✅ 标记为完成 / 未完成", command=self.toggle_task_completed)
 
         self.tree.bind("<Button-3>", self.show_context_menu)
+        self.tree.bind("<ButtonPress-1>", self.on_drag_start)
+        self.tree.bind("<B1-Motion>", self.on_drag_motion)
+        self.tree.bind("<ButtonRelease-1>", self.on_drag_drop_sort)
+        self.tree.tag_configure("hover", background="#d0eaff")  # 浅蓝色背景
+
         self.load_tree()
 
     def create_tables(self):
@@ -45,6 +54,7 @@ class TaskTreeApp:
                 due_date TEXT,
                 parent_id INTEGER,
                 completed INTEGER DEFAULT 0,
+                sort_order INTEGER DEFAULT 0,
                 FOREIGN KEY(parent_id) REFERENCES tasks(id)
             )
         ''')
@@ -60,10 +70,12 @@ class TaskTreeApp:
                 SELECT id, name, due_date, completed
                 FROM tasks
                 WHERE parent_id IS NULL
+                ORDER BY sort_order
                 """ if parent_id is None else """
                 SELECT id, name, due_date, completed
                 FROM tasks
                 WHERE parent_id = ? 
+                ORDER BY sort_order
                 """
         cursor = self.conn.execute(query, () if parent_id is None else (parent_id,))
         tasks = cursor.fetchall()
@@ -71,7 +83,6 @@ class TaskTreeApp:
         tasks.sort(key=lambda t: t[3])  # 根据是否完成排序
 
         for task_id, name, due, completed in tasks:
-            print(due)
             item_id = self.tree.insert(tree_parent, "end", iid=str(task_id), text=name, values=(due or '',))
             if completed:
                 self.tree.item(item_id, tags=("completed",))
@@ -130,8 +141,12 @@ class TaskTreeApp:
             if task_id:  # 编辑
                 self.conn.execute("UPDATE tasks SET name = ?, due_date = ? WHERE id = ?", (new_name, new_due, task_id))
             else:  # 添加
-                self.conn.execute("INSERT INTO tasks (name, due_date, parent_id) VALUES (?, ?, ?)",
-                                  (new_name, new_due, parent_id))
+                cursor = self.conn.execute(
+                    "SELECT MAX(sort_order) FROM tasks WHERE parent_id IS ?", (parent_id,))
+                max_order = cursor.fetchone()[0] or 0
+                new_order = max_order + 1
+                self.conn.execute("INSERT INTO tasks (name, due_date, parent_id,sort_order) VALUES (?, ?, ?,?)",
+                                  (new_name, new_due, parent_id, new_order))
             self.conn.commit()
             self.load_tree()
 
@@ -163,3 +178,100 @@ class TaskTreeApp:
         cursor = self.conn.execute("SELECT id FROM tasks WHERE parent_id = ?", (task_id,))
         for row in cursor.fetchall():
             self._set_task_completed_recursive(row[0], status)
+
+    def on_drag_start(self, event):
+        item = self.tree.identify_row(event.y)
+        if item:
+            self._dragging_item = item
+
+    def on_drag_motion(self, event):
+        if not self._dragging_item:
+            return
+
+        # 找到鼠标当前位置下的 item
+        hover_item = self.tree.identify_row(event.y)
+
+        # 如果悬浮在新的目标上
+        if hover_item != self._hover_target_item:
+            # 清除旧目标的高亮
+            if self._hover_target_item:
+                self.tree.item(self._hover_target_item, tags=())
+
+            # 设置新目标高亮（但不包括拖动源自己）
+            if hover_item and hover_item != self._dragging_item:
+                self.tree.item(hover_item, tags=("hover",))
+                self._hover_target_item = hover_item
+            else:
+                self._hover_target_item = None
+
+    def on_drag_drop(self, event):
+        if not self._dragging_item:
+            return
+
+        target_item = self.tree.identify_row(event.y)
+        if target_item and target_item != self._dragging_item:
+            dragged_id = int(self._dragging_item)
+            target_id = int(target_item)
+
+            # 防止拖动到自己的子节点中，造成递归死循环
+            if self._is_descendant(dragged_id, target_id):
+                messagebox.showwarning("无效操作", "不能将任务拖动到其子任务下")
+            else:
+                # 更新数据库
+                self.conn.execute("UPDATE tasks SET parent_id = ? WHERE id = ?", (target_id, dragged_id))
+                self.conn.commit()
+                self.load_tree()
+
+        self._dragging_item = None
+        self._dragging_target = None
+
+    def _is_descendant(self, parent_id, possible_child_id):
+        # 避免任务拖动到自己的后代节点下
+        cursor = self.conn.execute("SELECT id FROM tasks WHERE parent_id = ?", (parent_id,))
+        for row in cursor.fetchall():
+            child_id = row[0]
+            if child_id == possible_child_id:
+                return True
+            elif self._is_descendant(child_id, possible_child_id):
+                return True
+        return False
+
+
+    def on_drag_drop_sort(self, event):
+        if not self._dragging_item:
+            return
+        # 清除悬浮高亮
+        if self._hover_target_item:
+            self.tree.item(self._hover_target_item, tags=())
+            self._hover_target_item = None
+
+        target_item = self.tree.identify_row(event.y)
+        if not target_item or target_item == self._dragging_item:
+            self._dragging_item = None
+            return
+
+        drag_id = int(self._dragging_item)
+        target_id = int(target_item)
+
+        # 确保是同一父级
+        drag_parent = self.conn.execute("SELECT parent_id FROM tasks WHERE id = ?", (drag_id,)).fetchone()[0]
+        target_parent = self.conn.execute("SELECT parent_id FROM tasks WHERE id = ?", (target_id,)).fetchone()[0]
+        if drag_parent != target_parent:
+            # messagebox.showwarning("跨层级拖动无效", "只能在同一层级排序。")
+            # self._dragging_item = None
+            # return
+            self.on_drag_drop(event)
+            self._dragging_item = None
+            return
+
+        # 获取两者排序值并交换
+        drag_order = self.conn.execute("SELECT sort_order FROM tasks WHERE id = ?", (drag_id,)).fetchone()[0]
+        target_order = self.conn.execute("SELECT sort_order FROM tasks WHERE id = ?", (target_id,)).fetchone()[0]
+
+        self.conn.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (target_order, drag_id))
+        self.conn.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (drag_order, target_id))
+        self.conn.commit()
+        self.load_tree()
+        self._dragging_item = None
+
+
