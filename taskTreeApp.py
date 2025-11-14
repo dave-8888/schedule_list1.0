@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
 from datetime import datetime
-
 from taskEditorDialog import TaskEditorDialog
 
 class TaskTreeApp:
@@ -12,26 +11,22 @@ class TaskTreeApp:
         self._dragging_target = None
         self._hover_target_item = None  # 当前悬浮的 item
         self._completed_items = set()
-
-        self.root.title("任务列表树")
-
         self.conn = sqlite3.connect("task_tree.db")
         self.create_tables()
-
         # 添加父任务按钮
         self.toolbar = tk.Frame(root)
-        self.toolbar.pack(fill="x", pady=(5, 0))
-        tk.Button(self.toolbar, text="➕ 添加父任务", command=self.add_parent_task).pack(side="left", padx=10)
-        tk.Button(self.toolbar, text="🔽 全部展开", command=self.expand_all).pack(side="left", padx=5)
-        tk.Button(self.toolbar, text="🔼 全部折叠", command=self.collapse_all).pack(side="left", padx=5)
+        self.toolbar.pack(fill="x", pady=(5,0))
+        tk.Button(self.toolbar, text="➕ 添加父任务", command=self.add_parent_task).pack(side="left", padx=20)
+        tk.Button(self.toolbar, text="🔽 全部展开", command=self.expand_all).pack(side="left", padx=20)
+        tk.Button(self.toolbar, text="🔼 全部折叠", command=self.collapse_all).pack(side="left", padx=20)
 
         # 创建 Treeview
         self.tree = ttk.Treeview(root, columns=("due",), show="tree headings")
         self.tree.heading("#0", text="任务名称")
         self.tree.heading("due", text="截止时间")
-        self.tree.column("#0", width=200)
-        self.tree.column("due", width=100)
-        self.tree.pack(fill="both", expand=True, padx=5, pady=5)
+        self.tree.column("#0", width=600)
+        self.tree.column("due", width=200)
+        self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
         # 右键菜单
         self.menu = tk.Menu(root, tearoff=0)
@@ -330,6 +325,7 @@ class TaskTreeApp:
         if item_id:
             self.conn.execute("UPDATE tasks SET expanded = 0 WHERE id = ?", (int(item_id),))
             self.conn.commit()
+
 
 
 
