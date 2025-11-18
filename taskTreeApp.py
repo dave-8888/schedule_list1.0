@@ -153,6 +153,15 @@ class TaskTreeApp:
 
     def open_task_dialog(self, title, parent_id=None, task_id=None, name="", due_date=None):
         def on_save(new_name, new_due):
+            # =============== 日期格式验证 =================
+            if new_due:
+                try:
+                    # 你可以改成其他格式，比如 "%Y/%m/%d"
+                    datetime.strptime(new_due, "%Y-%m-%d")
+                except ValueError:
+                    messagebox.showerror("日期格式错误", "请输入正确的日期格式：YYYY-MM-DD")
+                    new_due = None
+            # =============================================
             if task_id:  # 编辑
                 self.conn.execute("UPDATE tasks SET name = ?, due_date = ? WHERE id = ?", (new_name, new_due, task_id))
             else:  # 添加
