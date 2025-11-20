@@ -21,11 +21,13 @@ class TaskTreeApp:
         tk.Button(self.toolbar, text="🔼 全部折叠", command=self.collapse_all).pack(side="left", padx=20)
 
         # 创建 Treeview
-        self.tree = ttk.Treeview(root, columns=("due",), show="tree headings")
+        self.tree = ttk.Treeview(root, columns=("due","finish"), show="tree headings")
         self.tree.heading("#0", text="任务名称")
         self.tree.heading("due", text="截止时间")
+        self.tree.heading("finish", text="完成时间")
         self.tree.column("#0", width=600)
-        self.tree.column("due", width=200)
+        self.tree.column("due", width=150)
+        self.tree.column("finish", width=180)
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
         # 右键菜单
@@ -72,6 +74,12 @@ class TaskTreeApp:
             self.conn.commit()
         except sqlite3.OperationalError:
             pass  # 字段已存在
+        # 若旧表中没有 finish_time 字段，尝试添加（避免报错）
+        try:
+            self.conn.execute("ALTER TABLE tasks ADD COLUMN finish_time TEXT")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
 
     def load_tree(self):
         self.tree.delete(*self.tree.get_children())
@@ -80,12 +88,12 @@ class TaskTreeApp:
 
     def _load_children(self, parent_id, tree_parent):
         query = """
-                SELECT id, name, due_date, completed,expanded
+                SELECT id, name, due_date,finish_time, completed,expanded
                 FROM tasks
                 WHERE parent_id IS NULL
                 ORDER BY sort_order
                 """ if parent_id is None else """
-                SELECT id, name, due_date, completed,expanded
+                SELECT id, name, due_date,finish_time, completed,expanded
                 FROM tasks
                 WHERE parent_id = ? 
                 ORDER BY sort_order
@@ -93,10 +101,16 @@ class TaskTreeApp:
         cursor = self.conn.execute(query, () if parent_id is None else (parent_id,))
         tasks = cursor.fetchall()
 
-        tasks.sort(key=lambda t: t[3])  # 根据是否完成排序
+        tasks.sort(key=lambda t: t[4])  # 根据是否完成排序
 
-        for task_id, name, due, completed,expanded  in tasks:
-            item_id = self.tree.insert(tree_parent, "end", iid=str(task_id), text=name, values=(due or '',))
+        for task_id, name, due, finish, completed, expanded in tasks:
+            item_id = self.tree.insert(
+                tree_parent,
+                "end",
+                iid=str(task_id),
+                text=name,
+                values=(due or '', finish or '')
+            )
             if completed:
                 self.tree.item(item_id, tags=("completed",))
                 self._completed_items.add(item_id)  # 记录
@@ -123,11 +137,17 @@ class TaskTreeApp:
         if not selected:
             return
         task_id = int(selected[0])
-        row = self.conn.execute("SELECT name, due_date FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        row = self.conn.execute("SELECT name, due_date,finish_time FROM tasks WHERE id = ?", (task_id,)).fetchone()
         if row:
-            name, due = row
+            name, due,finish = row
             due_date = datetime.strptime(due, "%Y-%m-%d").date() if due else None
-            self.open_task_dialog(title="修改任务", task_id=task_id, name=name, due_date=due_date)
+            finish_date = None
+            if finish:
+                try:
+                    finish_date = datetime.strptime(finish, "%Y-%m-%d %H:%M")
+                except:
+                    finish_date = None
+            self.open_task_dialog(title="修改任务", task_id=task_id, name=name, due_date=due_date,finish_date=finish_date)
 
     def delete_task(self):
         selected = self.tree.selection()
@@ -151,30 +171,37 @@ class TaskTreeApp:
             self.tree.selection_set(selected)
             self.menu.post(event.x_root, event.y_root)
 
-    def open_task_dialog(self, title, parent_id=None, task_id=None, name="", due_date=None):
-        def on_save(new_name, new_due):
+    def open_task_dialog(self, title, parent_id=None, task_id=None, name="", due_date=None,finish_date=None):
+        def on_save(new_name, new_due, new_finish):
             # =============== 日期格式验证 =================
             if new_due:
                 try:
                     # 你可以改成其他格式，比如 "%Y/%m/%d"
                     datetime.strptime(new_due, "%Y-%m-%d")
                 except ValueError:
-                    messagebox.showerror("日期格式错误", "请输入正确的日期格式：YYYY-MM-DD")
+                    messagebox.showerror("截至日期格式错误", "请输入正确的日期格式：YYYY-MM-DD")
                     new_due = None
+
+            if new_finish:
+                try:
+                    datetime.strptime(new_finish, "%Y-%m-%d %H:%M")
+                except:
+                    messagebox.showerror("完成日期格式错误", "请输入正确的日期格式：YYYY-MM-DD")
+                    finish_date = None
             # =============================================
             if task_id:  # 编辑
-                self.conn.execute("UPDATE tasks SET name = ?, due_date = ? WHERE id = ?", (new_name, new_due, task_id))
+                self.conn.execute("UPDATE tasks SET name = ?, due_date = ? , finish_time = ?  WHERE id = ?", (new_name, new_due,new_finish, task_id))
             else:  # 添加
                 cursor = self.conn.execute(
                     "SELECT MAX(sort_order) FROM tasks WHERE parent_id IS ?", (parent_id,))
                 max_order = cursor.fetchone()[0] or 0
                 new_order = max_order + 1
-                self.conn.execute("INSERT INTO tasks (name, due_date, parent_id,sort_order) VALUES (?, ?, ?,?)",
-                                  (new_name, new_due, parent_id, new_order))
+                self.conn.execute("INSERT INTO tasks (name, due_date,finish_time, parent_id,sort_order) VALUES (?, ?, ?,?,?)",
+                                  (new_name, new_due,new_finish, parent_id, new_order))
             self.conn.commit()
             self.load_tree()
 
-        TaskEditorDialog(self.root, title=title, name=name, due_date=due_date, callback=on_save)
+        TaskEditorDialog(self.root, title=title, name=name, due_date=due_date,finish_time=finish_date, callback=on_save)
 
     def expand_all(self):
         for item in self.tree.get_children():

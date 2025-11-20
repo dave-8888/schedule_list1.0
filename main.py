@@ -11,7 +11,7 @@ from screeninfo import get_monitors
 if __name__ == "__main__":
     for m in get_monitors():
         print(m)
-    win_width = 800
+    win_width = 1000
     win_hegiht = 600
     root = tk.Tk()
     sw = root.winfo_screenwidth()
