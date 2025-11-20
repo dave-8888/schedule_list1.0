@@ -291,10 +291,17 @@ class TaskTreeApp:
             if self._is_descendant(dragged_id, target_id):
                 messagebox.showwarning("无效操作", "不能将任务拖动到其子任务下")
             else:
-                # 更新数据库
-                self.conn.execute("UPDATE tasks SET parent_id = ? WHERE id = ?", (target_id, dragged_id))
-                self.conn.commit()
-                self.load_tree()
+                # 弹出确认框
+                confirm = messagebox.askyesno(
+                    "确认操作",
+                    f"是否将任务 '{self.tree.item(dragged_id, 'text')}' 移动到 '{self.tree.item(target_id, 'text')}' 下？"
+                )
+
+                if confirm:
+                    # 更新数据库
+                    self.conn.execute("UPDATE tasks SET parent_id = ? WHERE id = ?", (target_id, dragged_id))
+                    self.conn.commit()
+                    self.load_tree()
 
         self._dragging_item = None
         self._dragging_target = None
@@ -337,15 +344,19 @@ class TaskTreeApp:
             self.on_drag_drop(event)
             self._dragging_item = None
             return
-
+        # 弹出确认框
+        confirm = messagebox.askyesno(
+            "确认排序",
+            f"是否将任务顺序互换？\n\n任务 1: {self.tree.item(drag_id, 'text')}\n任务 2: {self.tree.item(target_id, 'text')}"
+        )
         # 获取两者排序值并交换
         drag_order = self.conn.execute("SELECT sort_order FROM tasks WHERE id = ?", (drag_id,)).fetchone()[0]
         target_order = self.conn.execute("SELECT sort_order FROM tasks WHERE id = ?", (target_id,)).fetchone()[0]
-
-        self.conn.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (target_order, drag_id))
-        self.conn.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (drag_order, target_id))
-        self.conn.commit()
-        self.load_tree()
+        if confirm:
+            self.conn.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (target_order, drag_id))
+            self.conn.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (drag_order, target_id))
+            self.conn.commit()
+            self.load_tree()
         self._dragging_item = None
 
     def _record_expanded_state(self):
