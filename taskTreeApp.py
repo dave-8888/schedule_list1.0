@@ -1,4 +1,7 @@
+import math
+import time
 import tkinter as tk
+from functools import partial
 from tkinter import ttk, messagebox
 import sqlite3
 from datetime import datetime
@@ -11,6 +14,13 @@ class TaskTreeApp:
         self._dragging_target = None
         self._hover_target_item = None  # 当前悬浮的 item
         self._completed_items = set()
+
+        self._press_time = None
+        self._press_coords = None
+        self._min_duration = 0.3  # 300毫秒
+        self._min_distance = 5  # 拖拽最小距离（像素）
+
+
         self.conn = sqlite3.connect("task_tree.db")
         self.create_tables()
         # 添加父任务按钮
@@ -42,12 +52,26 @@ class TaskTreeApp:
         self.tree.bind("<Button-3>", self.show_context_menu)
         self.tree.bind("<ButtonPress-1>", self.on_drag_start)
         self.tree.bind("<B1-Motion>", self.on_drag_motion)
-        self.tree.bind("<ButtonRelease-1>", self.on_drag_drop_sort)
+        self.tree.bind("<ButtonRelease-1>", self.on_release)
         self.tree.tag_configure("hover", background="#d0eaff")  # 浅蓝色背景
         self.tree.bind("<<TreeviewOpen>>", self.on_tree_open)
         self.tree.bind("<<TreeviewClose>>", self.on_tree_close)
 
         self.load_tree()
+
+    def on_release(self, event):
+        release_time = time.time()
+        duration = release_time - self._press_time
+        dx = event.x - self._press_coords[0]
+        dy = event.y - self._press_coords[1]
+        distance = math.hypot(dx, dy)
+
+        if duration >= self._min_duration and distance >= self._min_distance:
+            self.on_drag_drop_sort(event)  # 满足条件才调用原函数
+        else:
+            remaining_time = max(0, int((self._min_duration - duration) * 1000))
+            if distance >= self._min_distance:
+                self.tree.after(remaining_time, self.on_drag_drop_sort, event)
 
     def create_tables(self):
         self.conn.execute('''
@@ -254,6 +278,8 @@ class TaskTreeApp:
             self._set_task_completed_recursive(row[0], status)
 
     def on_drag_start(self, event):
+        self._press_time = time.time()
+        self._press_coords = (event.x, event.y)
         item = self.tree.identify_row(event.y)
         if item:
             self._dragging_item = item
