@@ -12,13 +12,13 @@ class TaskEditorDialog(tk.Toplevel):
 
         # ---- 任务名称 ----
         tk.Label(self, text="任务名称").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-        self.name_entry = tk.Entry(self, width=22, justify="left")
+        self.name_entry = tk.Entry(self, width=25, justify="left")
         self.name_entry.grid(row=0, column=1, padx=5, pady=5)
         self.name_entry.insert(0, name)
 
         # ---- 截止日期 ----
         tk.Label(self, text="截止时间").grid(row=1, column=0, padx=10, pady=5, sticky="e")
-        self.due_entry = DateEntry(self, width=20, date_pattern="y-mm-dd")
+        self.due_entry = DateEntry(self, width=23, date_pattern="y-mm-dd")
         self.due_entry.grid(row=1, column=1, padx=5, pady=5)
 
         if due_date:
