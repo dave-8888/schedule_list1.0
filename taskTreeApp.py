@@ -32,11 +32,12 @@ class TaskTreeApp:
 
         # 右键菜单
         self.menu = tk.Menu(root, tearoff=0)
+        self.menu.add_command(label="✅ 标记为完成 / 未完成", command=self.toggle_task_completed)
+        self.menu.add_command(label="🌱 设置为根任务", command=self.set_as_root_task)
+        self.menu.add_separator()
         self.menu.add_command(label="➕ 添加子任务", command=self.add_child_task)
         self.menu.add_command(label="✏️ 修改任务", command=self.edit_task)
-        self.menu.add_command(label="🗑️ 删除任务", command=self.delete_task)
-        self.menu.add_separator()
-        self.menu.add_command(label="✅ 标记为完成 / 未完成", command=self.toggle_task_completed)
+        self.menu.add_command(label="❌ 删除任务", command=self.delete_task)
 
         self.tree.bind("<Button-3>", self.show_context_menu)
         self.tree.bind("<ButtonPress-1>", self.on_drag_start)
@@ -158,6 +159,16 @@ class TaskTreeApp:
             self._delete_recursive(task_id)
             self.conn.commit()
             self.load_tree()
+
+    def set_as_root_task(self):
+        selected = self.tree.selection()
+        if not selected:
+            return
+        task_id = int(selected[0])
+        # 更新数据库，将 parent_id 设为 NULL
+        self.conn.execute("UPDATE tasks SET parent_id = NULL WHERE id = ?", (task_id,))
+        self.conn.commit()
+        self.load_tree()
 
     def _delete_recursive(self, task_id):
         cursor = self.conn.execute("SELECT id FROM tasks WHERE parent_id = ?", (task_id,))
